@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="menu.dashboard">EduManager — Quản Lý Học Sinh Học Thêm</title>
+    <meta name="description" content="Hệ thống quản lý học sinh học thêm: Điểm danh, thanh toán, thống kê doanh thu.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- Flatpickr for Date formatting -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- ═══ Sidebar ═══ -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fas fa-graduation-cap"></i></div>
+                    <span class="logo-text">EduManager</span>
+                </div>
+                <button id="sidebar-toggle" class="icon-btn" aria-label="Toggle sidebar"><i class="fas fa-bars"></i></button>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" data-page="dashboard" class="nav-item active">
+                    <i class="fas fa-chart-pie"></i><span data-i18n="menu.dashboard">Dashboard</span>
+                </a>
+                <a href="#" data-page="classes" class="nav-item">
+                    <i class="fas fa-chalkboard-teacher"></i><span data-i18n="menu.classes">Lớp học</span>
+                </a>
+                <a href="#" data-page="students" class="nav-item">
+                    <i class="fas fa-user-graduate"></i><span data-i18n="menu.students">Học sinh</span>
+                </a>
+                <a href="#" data-page="reports" class="nav-item">
+                    <i class="fas fa-chart-bar"></i><span data-i18n="menu.reports">Thống kê</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="lang-toggle" class="theme-btn" onclick="window.setLang(currentLang === 'vi' ? 'en' : 'vi')">
+                    <i class="fas fa-globe"></i><span id="lang-label">🇻🇳 Tiếng Việt</span>
+                </button>
+                <button id="theme-toggle" class="theme-btn">
+                    <i class="fas fa-sun"></i><span id="theme-label" data-i18n="theme.light">Sáng</span>
+                </button>
+                <button id="logout-btn" class="theme-btn text-danger mt-12" style="margin-top: 8px;">
+                    <i class="fas fa-sign-out-alt"></i><span data-i18n="auth.logout">Đăng xuất</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ═══ Main Content ═══ -->
+        <main id="main-content">
+            <header id="topbar">
+                <div id="breadcrumb">
+                    <span class="bc-current">Dashboard</span>
+                </div>
+                <div class="topbar-actions">
+                    <button id="mobile-menu-toggle" class="icon-btn" aria-label="Menu"><i class="fas fa-bars"></i></button>
+                </div>
+            </header>
+            <div id="app-content" class="app-content"></div>
+        </main>
+    </div>
+
+    <!-- ═══ Auth Overlay ═══ -->
+    <div id="auth-overlay" class="auth-overlay hidden">
+        <div class="auth-container">
+            <div class="auth-header text-center mb-24">
+                <div class="logo-icon mb-12" style="font-size: 3rem; color: var(--primary-color);"><i class="fas fa-graduation-cap"></i></div>
+                <h2>Welcome to EduManager</h2>
+                <p class="text-muted">Manage your tutoring center effortlessly</p>
+            </div>
+            <div class="auth-tabs d-flex mb-24">
+                <button class="auth-tab active flex-1" id="tab-login">Login</button>
+                <button class="auth-tab flex-1" id="tab-register">Register</button>
+            </div>
+            
+            <form id="auth-form">
+                <div class="form-group mb-16">
+                    <label>Email</label>
+                    <input type="email" id="auth-email" class="form-control" required placeholder="teacher@example.com">
+                </div>
+                <div class="form-group mb-16">
+                    <div class="d-flex justify-between align-center mb-4">
+                        <label data-i18n="auth.password">Password</label>
+                        <a href="#" id="auth-forgot-password" class="text-sm text-primary" data-i18n="auth.forgot_password" style="text-decoration: none;">Forgot password?</a>
+                    </div>
+                    <input type="password" id="auth-password" class="form-control" required placeholder="••••••••">
+                </div>
+                <div id="auth-register-notice" class="text-muted text-sm text-center mb-16">
+                    If you don't have an account, please register first.
+                </div>
+                <button type="submit" id="auth-submit-btn" class="btn btn-primary w-100">Login</button>
+            </form>
+            <div id="auth-error" class="text-danger mt-16 text-center text-sm"></div>
+        </div>
+    </div>
+
+    <!-- ═══ Modal ═══ -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div id="modal-container" class="modal-container">
+            <div class="modal-header">
+                <h3 id="modal-title"></h3>
+                <button class="modal-close" onclick="App.closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="modal-body" class="modal-body"></div>
+            <div id="modal-footer" class="modal-footer"></div>
+        </div>
+    </div>
+
+    <!-- ═══ Toast Container ═══ -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- ═══ Image Preview ═══ -->
+    <div id="image-preview" class="image-preview hidden">
+        <button class="preview-close" onclick="App.closeImagePreview()"><i class="fas fa-times"></i></button>
+        <img id="preview-image" src="" alt="Preview">
+    </div>
+
+    <!-- ═══ Scripts ═══ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+    <script src="js/locales.js?v=1"></script>
+    <script src="js/storage.js?v=4"></script>
+    <script src="js/app.js?v=3"></script>
+    <script src="js/dashboard.js?v=2"></script>
+    <script src="js/class.js?v=2"></script>
+    <script src="js/student.js?v=2"></script>
+    <script src="js/batch.js?v=2"></script>
+    <script src="js/attendance.js?v=2"></script>
+    <script src="js/payment.js?v=2"></script>
+    <script src="js/report.js?v=2"></script>
+    <script src="js/export.js?v=2"></script>
+</body>
+</html>
